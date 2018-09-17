@@ -1,0 +1,15 @@
+#body {
+    padding: 15px;
+}
+
+    .jumbotron {
+        text-align: center;
+    }
+
+    .panel {
+        padding-bottom: 5px;
+    }
+
+        .panel-heading {
+            padding-bottom: 15px;
+        }
