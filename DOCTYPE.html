@@ -8,6 +8,7 @@
     <link rel="stylesheet" type="text/css" href="assets/css/style.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.5.0/firebase.js"></script>
+    <script src="https://cdn.jsdelivr.net/momentjs/2.12.0/moment.min.js"></script>
 
 <!-- I'm getting this message in the console but I'm not sure how to fix it. Still works though. -->
 <!-- It looks like you're using the development build of the Firebase JS SDK.
@@ -31,12 +32,13 @@ https://www.gstatic.com/firebasejs/5.0.0/firebase-<PACKAGE>.js -->
         </div>
     </div>
 
+<!------------------------ TRAIN TABLE ------------------------>
     <div class="panel panel-default">
         <div class="panel-heading">
             <h3 class="panel-title">Current Train Schedule</h3>
         </div>
         <div class="panel-body">
-            <table class="table">
+            <table class="table" id="train-table">
                 <thead>
                     <tr>
                         <th scope="col" id="form-name">Train Name</th>
@@ -47,18 +49,12 @@ https://www.gstatic.com/firebasejs/5.0.0/firebase-<PACKAGE>.js -->
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <th scope="row">Trenton Express</th>
-                        <td>Trenton</td>
-                        <td>25</td>
-                        <td>05:35 PM</td>
-                        <td>10</td>
-                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 
+<!------------------------ FORM ------------------------>
     <div class="panel panel-default">
         <div class="panel-heading">
             <h3 class="panel-title">Add Train</h3>
@@ -74,7 +70,7 @@ https://www.gstatic.com/firebasejs/5.0.0/firebase-<PACKAGE>.js -->
                     <input type="text" class="form-control" id="dest-input">
                 </div>
                 <div class="form-group">
-                    <label for="formGroupExampleInput">First Train Time (HH:mm - military time)</label>
+                    <label for="formGroupExampleInput">First Train Time (ex. 01:00 PM)</label>
                     <input type="text" class="form-control" id="time-input">
                 </div>
                 <div class="form-group">
@@ -113,19 +109,44 @@ $(".btn").on("click", function (event) {
 
     var name = $("#name-input").val().trim();
     var destination = $("#dest-input").val().trim();
-    var time = $("#time-input").val().trim();
+    var time = moment($("#time-input").val().trim(), "HH:mm").format("HH:mm");
     var frequency = $("#freq-input").val().trim();
 
-    database.ref().set({
+    var fireTrain = {
         fireName: name,
         fireDest: destination,
         fireTime: time,
         fireFreq: frequency
-    })
+    }
+
+    database.ref().push(fireTrain);
+    
+    $("#name-input").val("");
+    $("#dest-input").val("");
+    $("#time-input").val("");
+    $("#freq-input").val("");
+
+    return false;
 });
 
 // ------------------------ADD ROW TO TABLE------------------------
+database.ref().on("child_added", function(childSnapshot) {
+    var name = childSnapshot.val().fireName;
+    var destination = childSnapshot.val().fireDest;
+    var time = childSnapshot.val().fireTime;
+    var frequency = childSnapshot.val().fireFreq;
 
+    var firstTimeConverted = moment(time, "HH:mm");
+    var currentTime = moment().format("HH:mm");
+    var timeDiff = moment().diff(moment(firstTimeConverted), "minutes");
+    var timeRemainder = timeDiff % frequency;
+
+    var minutesAway = frequency - timeRemainder;
+    var nextArrival = moment().add(minutesAway, "minutes").format("HH:mm");
+
+    $("#train-table>tbody").append(
+        "<tr><td>" + name + "</td><td>" + destination + "</td><td>" + frequency + "</td><td>" + nextArrival + "</td><td>" + minutesAway + "</td></tr>");
+});
 
 // ------------------------SNAPSHOT------------------------
 database.ref().on("value", function(snapshot) {
